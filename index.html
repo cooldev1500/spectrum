@@ -2,222 +2,265 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<title>Curious Spectrum</title>
+<title>Echoes • Shared Constellation</title>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <style>
-    :root { --accent: #ff66cc; --bg: #1a0022; }
+    :root { --accent: #ff66cc; }
     body {
         margin:0; padding:0;
-        background: linear-gradient(180deg, #1a0022, #330044);
+        background: linear-gradient(180deg, #1a0022, #2a0033);
         color:#eee;
         font-family:system-ui, sans-serif;
         min-height:100vh;
     }
     header {
-        background:rgba(0,0,0,0.5);
+        background:rgba(0,0,0,0.6);
         padding:20px;
         text-align:center;
         border-bottom:3px solid var(--accent);
     }
-    h1 { margin:0; font-size:1.9em; }
-    .container { max-width:960px; margin:0 auto; padding:20px; }
-    .section { background:rgba(255,255,255,0.08); border-radius:16px; padding:20px; margin-bottom:25px; }
-    .category { margin-bottom:30px; }
-    .category h3 { margin:0 0 15px 0; color:#ff99dd; }
-    .question { margin-bottom:22px; }
-    label { display:block; margin-bottom:6px; font-weight:500; }
-    .slider-container { display:flex; align-items:center; gap:12px; }
-    input[type="range"] { flex:1; accent-color:var(--accent); height:8px; border-radius:999px; }
-    .value { font-size:1.15em; width:48px; text-align:right; font-weight:600; color:var(--accent); }
+    h1 { margin:0; font-size:2em; }
+    .container { max-width:1100px; margin:0 auto; padding:20px; }
+    .card-grid {
+        display:grid;
+        grid-template-columns:repeat(auto-fit, minmax(320px, 1fr));
+        gap:18px;
+    }
+    .echo-card {
+        background:rgba(255,255,255,0.08);
+        border-radius:16px;
+        padding:18px;
+        border:1px solid #550077;
+        position:relative;
+    }
+    .echo-card h3 {
+        margin:0 0 12px 0;
+        font-size:1.1em;
+        color:#ff99dd;
+    }
+    .axis {
+        width:100%;
+        height:180px;
+        background:#1f0033;
+        border-radius:12px;
+        position:relative;
+        border:2px solid #660099;
+        cursor:crosshair;
+        margin-top:8px;
+    }
+    .dot {
+        position:absolute;
+        width:18px;
+        height:18px;
+        background:var(--accent);
+        border-radius:50%;
+        border:2px solid white;
+        box-shadow:0 0 12px var(--accent);
+        transform:translate(-50%, -50%);
+        pointer-events:none;
+    }
     button {
         background:var(--accent);
         color:white;
         border:none;
-        padding:16px 28px;
+        padding:16px 32px;
         font-size:1.1em;
         border-radius:12px;
         cursor:pointer;
         width:100%;
-        margin-top:20px;
+        margin-top:25px;
     }
-    button:hover { filter:brightness(1.12); }
-    .advanced { display:none; }
-    .toggle { color:var(--accent); cursor:pointer; text-decoration:underline; font-size:0.95em; }
+    button:hover { filter:brightness(1.15); }
     .results { display:none; }
-    .overlap { background:rgba(255,102,204,0.12); border:1px solid var(--accent); padding:16px; border-radius:12px; margin-bottom:12px; }
+    .constellation { display:grid; grid-template-columns:repeat(auto-fit, minmax(280px,1fr)); gap:15px; }
+    .echo-result {
+        background:rgba(255,102,204,0.15);
+        border:1px solid var(--accent);
+        padding:16px;
+        border-radius:12px;
+    }
 </style>
 </head>
 <body>
 
 <header>
-    <h1>Curious Spectrum</h1>
-    <p>A quiet game to explore together</p>
+    <h1>Echoes</h1>
+    <p>A private constellation of curiosities • Only shared echoes appear</p>
 </header>
 
 <div class="container">
 
     <div id="intro">
-        <p style="text-align:center; max-width:620px; margin:30px auto;">
-            We each answer privately.<br>
-            Only the things we both feel similarly about will appear.
+        <p style="text-align:center; max-width:680px; margin:40px auto; font-size:1.1em;">
+            We each quietly explore the same set of echoes.<br>
+            Only the ones we both feel drawn to will light up together.
         </p>
-        <button onclick="startSurvey()">Start Together</button>
+        <button onclick="startEchoes()">Begin the Constellation</button>
     </div>
 
-    <div id="survey" style="display:none;"></div>
+    <div id="echoes" style="display:none;">
+        <div id="cardGrid" class="card-grid"></div>
+        <button onclick="finishEchoes()">Finish & Get My Code</button>
+    </div>
 
     <div id="results" class="results">
-        <h2 style="text-align:center;">Your Shared Spectrum</h2>
-        <div id="spectrumMap"></div>
+        <h2 style="text-align:center;margin-bottom:20px;">Your Shared Constellation</h2>
+        <div id="constellation" class="constellation"></div>
         
-        <div style="margin-top:40px; text-align:center;">
+        <div style="margin-top:40px;text-align:center;">
             <button onclick="exportLog()">Export Full Private Log (for me only)</button>
         </div>
     </div>
 </div>
 
 <script>
-// ==================== CATEGORIES & QUESTIONS ====================
-const categories = [
-    {id:"attention",   title:"Feeling strongly desired or noticed by someone new"},
-    {id:"exhibition",  title:"Light risk of being seen or watched"},
-    {id:"involving",   title:"Involving another person in some way"},
-    {id:"bdsm",        title:"Light power play or BDSM elements"},
-    {id:"taboo",       title:"Exploring something a little taboo or forbidden"},
-    {id:"bisexual",    title:"Bisexual or same-gender curiosity"},
-    {id:"proximity",   title:"How close or familiar the other person is"},
-    {id:"public",      title:"Being bold or playful in semi-public spaces"},
-    {id:"watching",    title:"Watching or being watched"},
-    {id:"intensity",   title:"How intense or passionate the experience feels"}
+// ==================== ECHO CARDS (22 dimensions) ====================
+const echoes = [
+    {id:"desire", title:"Feeling strongly desired by someone new"},
+    {id:"noticed", title:"Being noticed or looked at with clear interest"},
+    {id:"exhibit-light", title:"Light risk of being seen or watched"},
+    {id:"exhibit-bold", title:"Being playfully bold in semi-public spaces"},
+    {id:"involve-general", title:"Involving another person in some way"},
+    {id:"power-play", title:"Light power play or giving/taking control"},
+    {id:"taboo", title:"Exploring something a little taboo or forbidden"},
+    {id:"intensity", title:"How intense or passionate the experience feels"},
+    {id:"watching", title:"Watching or being watched by others"},
+    {id:"bisexual", title:"Bisexual or same-gender curiosity"},
+    {id:"proximity", title:"How close or familiar the other person is"},
+    {id:"emotional", title:"Strong emotional or romantic charge"},
+    {id:"tease", title:"Being teased or building anticipation"},
+    {id:"risk", title:"A small element of risk or adrenaline"},
+    {id:"public", title:"Being bold in a place where others could notice"},
+    {id:"control", title:"Giving up control for a moment"},
+    {id:"attention", title:"Receiving a lot of focused attention"},
+    {id:"mystery", title:"The thrill of something unknown or new"},
+    {id:"aftercare", title:"Feeling safe and cared for afterward"},
+    {id:"fantasy-only", title:"Pure fantasy with no real-world intention"},
 ];
 
-let myAnswers = {};
+let myEchoData = {};
 
-function startSurvey() {
+function startEchoes() {
     document.getElementById('intro').style.display = 'none';
-    document.getElementById('survey').style.display = 'block';
-    renderSurvey();
+    document.getElementById('echoes').style.display = 'block';
+    renderEchoCards();
 }
 
-function renderSurvey() {
-    let html = `<h2 style="margin-bottom:25px;">Your Private Answers</h2>`;
+function renderEchoCards() {
+    const grid = document.getElementById('cardGrid');
+    grid.innerHTML = '';
 
-    categories.forEach(cat => {
-        html += `
-        <div class="section">
-            <div class="category">
-                <h3>${cat.title}</h3>
-                
-                <div class="question">
-                    <label>How appealing does this feel?</label>
-                    <div class="slider-container">
-                        <input type="range" min="0" max="10" value="5" id="${cat.id}-appeal">
-                        <span class="value" id="${cat.id}-appeal-val">5</span>
-                    </div>
-                </div>
-                
-                <div class="question">
-                    <label>How far would you be willing to go?</label>
-                    <div class="slider-container">
-                        <input type="range" min="0" max="10" value="3" id="${cat.id}-intensity">
-                        <span class="value" id="${cat.id}-intensity-val">3</span>
-                    </div>
-                </div>
+    echoes.forEach(echo => {
+        const cardHTML = `
+        <div class="echo-card">
+            <h3>${echo.title}</h3>
+            <div class="axis" id="axis-${echo.id}">
+                <div class="dot" id="dot-${echo.id}" style="left:50%; top:70%;"></div>
+            </div>
+            <div style="display:flex;justify-content:space-between;font-size:0.85em;margin-top:6px;opacity:0.7;">
+                <span>Less appealing</span>
+                <span>More appealing</span>
+            </div>
+            <div style="display:flex;justify-content:space-between;font-size:0.85em;margin-top:4px;opacity:0.7;">
+                <span>Low willingness</span>
+                <span>High willingness</span>
             </div>
         </div>`;
+        grid.innerHTML += cardHTML;
     });
 
-    // Advanced section (hidden by default)
-    html += `
-    <div class="section">
-        <span class="toggle" onclick="toggleAdvanced()">▼ Advanced Options (optional)</span>
-        <div id="advancedSection" class="advanced">
-            <p style="font-size:0.9em;opacity:0.7;margin-top:15px;">Specific people you might be open to involving (private – only matches shown)</p>
-            <input type="text" id="peopleInput" placeholder="e.g. Josh, Riley, friend from work..." style="width:100%;padding:14px;border-radius:8px;background:#2a0044;border:1px solid #660099;color:white;">
-        </div>
-    </div>`;
-
-    html += `<button onclick="finishSurvey()">Finish & Get My Code</button>`;
-    document.getElementById('survey').innerHTML = html;
-
-    // Live slider values
-    categories.forEach(cat => {
-        const a = document.getElementById(cat.id + '-appeal');
-        const i = document.getElementById(cat.id + '-intensity');
-        if (a) a.oninput = () => document.getElementById(cat.id + '-appeal-val').textContent = a.value;
-        if (i) i.oninput = () => document.getElementById(cat.id + '-intensity-val').textContent = i.value;
+    // Make each axis draggable
+    echoes.forEach(echo => {
+        const axis = document.getElementById(`axis-${echo.id}`);
+        const dot = document.getElementById(`dot-${echo.id}`);
+        
+        axis.addEventListener('mousedown', (e) => dragDot(e, axis, dot, echo.id));
+        axis.addEventListener('touchstart', (e) => dragDot(e, axis, dot, echo.id));
     });
 }
 
-function toggleAdvanced() {
-    const adv = document.getElementById('advancedSection');
-    adv.style.display = adv.style.display === 'block' ? 'none' : 'block';
+function dragDot(e, axis, dot, id) {
+    e.preventDefault();
+    const rect = axis.getBoundingClientRect();
+    
+    function move(e) {
+        let clientX = e.clientX || (e.touches && e.touches[0].clientX);
+        let clientY = e.clientY || (e.touches && e.touches[0].clientY);
+        
+        let x = Math.max(0, Math.min(100, ((clientX - rect.left) / rect.width) * 100));
+        let y = Math.max(0, Math.min(100, ((clientY - rect.top) / rect.height) * 100));
+        
+        dot.style.left = x + '%';
+        dot.style.top = y + '%';
+        
+        myEchoData[id] = {x: Math.round(x), y: Math.round(y)};
+    }
+    
+    function stop() {
+        document.removeEventListener('mousemove', move);
+        document.removeEventListener('mouseup', stop);
+        document.removeEventListener('touchmove', move);
+        document.removeEventListener('touchend', stop);
+    }
+    
+    document.addEventListener('mousemove', move);
+    document.addEventListener('mouseup', stop);
+    document.addEventListener('touchmove', move);
+    document.addEventListener('touchend', stop);
 }
 
-function finishSurvey() {
-    myAnswers = {};
-    categories.forEach(cat => {
-        const appeal = parseInt(document.getElementById(cat.id + '-appeal').value) || 5;
-        const intensity = parseInt(document.getElementById(cat.id + '-intensity').value) || 3;
-        myAnswers[cat.id] = {appeal, intensity};
-    });
-
-    const peopleStr = document.getElementById('peopleInput').value.trim();
-    myAnswers.people = peopleStr ? peopleStr.split(',').map(p => p.trim()).filter(p => p) : [];
-
-    const code = btoa(JSON.stringify(myAnswers)).slice(0, 16);
-
-    alert(`Your code is:\n\n${code}\n\nSend this code to your partner.\nThey will enter it to see the shared results.`);
-
-    showResults(myAnswers, code);
+function finishEchoes() {
+    const code = btoa(JSON.stringify(myEchoData)).slice(0, 18);
+    alert(`Your Echo Code:\n\n${code}\n\nSend this code to your partner.`);
+    showSharedMap(myEchoData, code);
 }
 
-function showResults(myData, myCode) {
-    document.getElementById('survey').style.display = 'none';
+function showSharedMap(myData, myCode) {
+    document.getElementById('echoes').style.display = 'none';
     document.getElementById('results').style.display = 'block';
     
-    let html = `<p style="text-align:center;opacity:0.8;">Enter your partner's code below</p>
-                <input type="text" id="partnerCodeInput" placeholder="Paste partner's code here" style="width:100%;padding:14px;margin:15px 0;border-radius:8px;background:#2a0044;border:1px solid #660099;color:white;">
-                <button onclick="loadPartnerCode('${myCode}')">Show Shared Spectrum</button>`;
+    let html = `<p style="text-align:center;opacity:0.8;">Enter your partner's code to see the shared constellation</p>
+                <input type="text" id="partnerCodeInput" placeholder="Paste partner's code here" style="width:100%;padding:16px;margin:15px 0;border-radius:12px;background:#2a0044;border:1px solid #660099;color:white;">
+                <button onclick="loadPartner('${myCode}')">Reveal Shared Echoes</button>`;
     
-    document.getElementById('spectrumMap').innerHTML = html;
+    document.getElementById('constellation').innerHTML = html;
 }
 
-function loadPartnerCode(myCode) {
+function loadPartner(myCode) {
     const input = document.getElementById('partnerCodeInput').value.trim();
     if (!input) return alert("Please enter the partner's code");
-
+    
     try {
         const partnerData = JSON.parse(atob(input));
-        let html = `<h3 style="text-align:center;margin-bottom:20px;">Shared Spectrum</h3>`;
+        let html = `<h3 style="text-align:center;margin-bottom:20px;">Your Shared Constellation</h3>`;
         
-        categories.forEach(cat => {
-            const mine = myAnswers[cat.id] || {appeal:0, intensity:0};
-            const theirs = partnerData[cat.id] || {appeal:0, intensity:0};
-            const overlap = Math.min(mine.appeal, theirs.appeal) + Math.min(mine.intensity, theirs.intensity);
-            if (overlap >= 8) {
+        echoes.forEach(echo => {
+            const mine = myData[echo.id] || {x:50, y:70};
+            const theirs = partnerData[echo.id] || {x:50, y:70};
+            const overlapScore = Math.max(0, 100 - Math.abs(mine.x - theirs.x) - Math.abs(mine.y - theirs.y));
+            
+            if (overlapScore > 60) {
                 html += `
-                <div class="overlap">
-                    <strong>${cat.title}</strong><br>
-                    Your appeal: ${mine.appeal} | Their appeal: ${theirs.appeal}<br>
-                    Your intensity: ${mine.intensity} | Their intensity: ${theirs.intensity}
+                <div class="echo-result">
+                    <strong>${echo.title}</strong><br>
+                    Strong overlap detected
                 </div>`;
             }
         });
         
-        document.getElementById('spectrumMap').innerHTML = html;
+        document.getElementById('constellation').innerHTML = html;
     } catch(e) {
-        alert("Invalid code. Please check and try again.");
+        alert("Invalid code – please check and try again.");
     }
 }
 
 function exportLog() {
-    const log = JSON.stringify(myAnswers, null, 2);
+    const log = JSON.stringify(myEchoData, null, 2);
     const blob = new Blob([log], {type:'text/plain'});
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = 'spectrum-full-private-log.txt';
+    a.download = 'echoes-full-private-log.txt';
     a.click();
 }
 </script>
